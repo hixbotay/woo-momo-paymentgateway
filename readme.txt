@@ -1,5 +1,5 @@
 === WooCommerce Payment Gateway - Momo ===
-Contributors: innerfire, shulmang
+Contributors: freelancerviet.net
 Donate link: http://freelancerviet.net/
 Tags: WooCommerce, Payment, Gateway, Momo
 Requires at least: 4.7

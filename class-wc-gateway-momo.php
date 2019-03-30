@@ -1,14 +1,14 @@
 <?php
 /**
- * Plugin Name: Malaysia Public Bank Standard Payment Gateway
- * Plugin URI: 
- * Description: Malaysia Public Bank Standard Payment Gateway for Woocommerce
+ * Plugin Name: Woocommerce Payment Gateway MOMO
+ * Plugin URI: https://wordpress.org/plugins/woocommerce-payment-gateway-momo
+ * Description: MOMO E-wallet from momo.vn for Woocommerce
  * Version: 1.0.0
  * Author: Duong
  * Author URI: http://woocommerce.com/
  * Developer: Duong
  * Developer URI: 
- * Text Domain: woocommerce-payment-public-bank
+ * Text Domain: woocommerce-payment-gateway-momo
  * Domain Path: /languages
  *
  * Copyright: © 2009-2015 WooCommerce.
@@ -19,23 +19,23 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-add_action( 'plugins_loaded', 'init_wc_public_bank_gateway' );
+add_action( 'plugins_loaded', 'init_wc_payment_momo_gateway' );
 
-function init_wc_public_bank_gateway(){
+function init_wc_payment_momo_gateway(){
 	if(!class_exists('WC_Payment_Gateway')) return;
 	
-	class WC_Gateway_Public_Bank extends WC_Payment_Gateway {
+	class WC_Gateway_Momo extends WC_Payment_Gateway {
 		
 	
 		public static $log_enabled = false;
 		public static $log = false;
 	
 		public function __construct() {
-			$this->id                 = 'public_bank';
+			$this->id                 = 'wc_payment_momo';
 			$this->has_fields         = true;//if need some option in checkout page
-			$this->order_button_text  = __( 'Proceed to Public bank', 'woocommerce' );
-			$this->method_title       = __( 'Malaysia Public Bank', 'woocommerce' );
-			$this->method_description = 'Setting for Public bank';
+			$this->order_button_text  = __( 'Thanh toán', 'woocommerce' );
+			$this->method_title       = __( 'Thanh toán với Momo', 'woocommerce' );
+			$this->method_description = 'MOMO';
 			$this->supports           = array(
 				'products'
 			);
@@ -48,23 +48,22 @@ function init_wc_public_bank_gateway(){
 			$this->title          = $this->get_option( 'title' );
 			$this->description    = $this->get_option( 'description' );
 			
-			$this->testmode       = 'yes' === $this->get_option( 'testmode', 'no' );
-			
-			$this->debug          = 'yes' === $this->get_option( 'debug', 'no' );
-			$this->secretCode          = $this->get_option( 'secretCode' );
-			$this->merid_visa = $this->get_option( 'merid_visa', '' );
-			$this->merid_master = $this->get_option( 'merid_master', '' );
-			$this->return_url = WC()->api_request_url( 'wc_public_bank' );
+			$this->testmode       = 'yes' === $this->get_option( 'testmode', 'no' );			
+			$this->debug          = 'yes' === $this->get_option( 'debug', 'no' );			
+			$this->return_url = WC()->api_request_url( 'wc_payment_momo' );
 			$this->thankyou_url = $this->get_option( 'thankyou_page' );
+
+			$this->requestType = 'captureMoMoWallet';
+			$this->endpoint_checkout = 'https://payment.momo.vn/gw_payment/transactionProcessor';
+			$this->partnerCode = $this->get_option( 'partnerCode' );
+			$this->accessKey = $this->get_option( 'accessKey' );
+			$this->serectkey = $this->get_option( 'serectkey' );
 			
 			if($this->testmode){
-				$this->endpoint_checkout = 'https://uattds2.pbebank.com/PGW/Pay/Detail';
-				$this->endpoint_process = 'https://uattds2.pbebank.com/PGW/Pay/Process';
-				$this->endpoint_refund = 'https://uattds2.pbebank.com/PGW/Pay/Refund';
-			}else{
-				$this->endpoint_checkout = 'https://ecom.pbebank.com/PGW/Pay/Detail';
-				$this->endpoint_process = 'https://ecom.pbebank.com/PGW/Pay/Process';
-				$this->endpoint_refund = 'https://ecom.pbebank.com/PGW/Pay/Refund';
+				$this->endpoint_checkout = 'https://test-payment.momo.vn/gw_payment/transactionProcessor';
+				$this->partnerCode = 'MOMO0HGO20180417';
+				$this->accessKey = 'E8HZuQRy2RsjVtZp';
+				$this->serectkey = 'fj00YKnJhmYqahaFWUgkg75saNTzMrbO';
 			}
 	
 			self::$log_enabled    = $this->debug;
@@ -72,9 +71,36 @@ function init_wc_public_bank_gateway(){
 				
 			
 			add_action( 'woocommerce_update_options_payment_gateways_' . $this->id, array( $this, 'process_admin_options' ) );
-			add_action( 'woocommerce_api_wc_public_bank', array( $this, 'capture_payment' ) );
+			add_action( 'woocommerce_api_wc_payment_momo', array( $this, 'capture_payment' ) );
 			add_action('woocommerce_receipt_public_bank', array($this, 'checkout_form'));
+			$plugin = plugin_basename( __FILE__ );
+			add_filter( "plugin_action_links_$plugin", array( $this, 'add_admin_section' ) );
 	
+		}
+
+		function execPostRequest($url, $data)
+		{
+			if(is_array($data) || is_object($data)){
+				$data = json_encode($data);
+			}
+			$ch = curl_init($url);
+			curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+				'Content-Type: application/json',
+				'Content-Length: ' . strlen($data))
+			);
+			curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+			curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+
+			//execute post
+			$result = curl_exec($ch);
+
+			//close connection
+			curl_close($ch);
+
+			return $result;
 		}
 		
 		
@@ -245,6 +271,7 @@ function init_wc_public_bank_gateway(){
 					'securityMethod' => 'SHA1',
 					'securityKeyReq' => $securityKeyReq
 			);
+
 // 			$this->debug($has_key);
 // 			$this->debug($params);die;
 			
@@ -338,10 +365,9 @@ function init_wc_public_bank_gateway(){
 			$order = wc_get_order( $order_id );
 	
 			if ( ! $this->can_refund_order( $order ) ) {
-				$this->log( 'Refund Failed: No transaction ID' );
-				return new WP_Error( 'error', __( 'Refund Failed: No transaction ID', 'woocommerce' ) );
+				return new WP_Error( 'error', 'Momo chưa chỗ trợ refund, vui lòng trả tiền bằng tay' );
 			}
-			$order->add_order_note( sprintf( __( 'Refunded %s - Refund ID: %s', 'woocommerce' ), $result['GROSSREFUNDAMT'], $result['REFUNDTRANSACTIONID'] ) );
+			// $order->add_order_note( sprintf( __( 'Refunded %s - Refund ID: %s', 'woocommerce' ), $result['GROSSREFUNDAMT'], $result['REFUNDTRANSACTIONID'] ) );
 			
 		}
 		
@@ -376,29 +402,28 @@ function init_wc_public_bank_gateway(){
 			print_r($value);
 			echo '</pre>';
 		}
+
+		function add_admin_section($links ){
+			$plugin_links = array();
+	
+			if ( version_compare( WC()->version, '2.6', '>=' ) ) {
+				$section_slug = strtolower(substr(__CLASS__,0,12));
+			} else {
+				$section_slug = strtolower( __CLASS__ );
+			}
+			$setting_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
+			$plugin_links[] = '<a href="' . esc_url( $setting_url ) . '">' . esc_html__( 'Settings', 'woocommerce-payment-momo' ) . '</a>';
+			
+			return array_merge( $plugin_links, $links );
+		}
 	}
 	
-	$plugin = plugin_basename( __FILE__ );
-	add_filter( "plugin_action_links_$plugin", 'plugin_public_bank_action_links' );
+	
 }
-function woocommerce_add_malaysia_public_bank($methods) {
-	$methods[] = 'WC_Gateway_Public_Bank';
+function woocommerce_add_payment_gateway_momo($methods) {
+	$methods[] = 'WC_Gateway_Momo';
 	return $methods;
 }
 
-add_filter('woocommerce_payment_gateways', 'woocommerce_add_malaysia_public_bank' );
+add_filter('woocommerce_payment_gateways', 'woocommerce_add_payment_gateway_momo' );
 
-
-function plugin_public_bank_action_links( $links ) {
-	$plugin_links = array();
-	
-	if ( version_compare( WC()->version, '2.6', '>=' ) ) {
-		$section_slug = 'public_bank';
-	} else {
-		$section_slug = strtolower( 'WC_Gateway_Public_Bank' );
-	}
-	$setting_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
-	$plugin_links[] = '<a href="' . esc_url( $setting_url ) . '">' . esc_html__( 'Settings', 'woocommerce-payment-public-bank' ) . '</a>';
-	
-	return array_merge( $plugin_links, $links );
-}
