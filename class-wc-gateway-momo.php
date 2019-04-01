@@ -33,8 +33,8 @@ function init_wc_payment_momo_gateway(){
 		public function __construct() {
 			$this->id                 = 'wc_payment_momo';
 			$this->has_fields         = true;//if need some option in checkout page
-			$this->order_button_text  = __( 'Thanh toán', 'woocommerce' );
-			$this->method_title       = __( 'Thanh toán với Momo', 'woocommerce' );
+			$this->order_button_text  = __( 'Pay', 'woocommerce-payment-gateway-momo' );
+			$this->method_title       = __( 'Pay with Momo', 'woocommerce-payment-gateway-momo' );
 			$this->method_description = 'MOMO';
 			$this->supports           = array(
 				'products'
@@ -54,7 +54,7 @@ function init_wc_payment_momo_gateway(){
 			$this->thankyou_url = $this->get_option( 'thankyou_page' );
 
 			$this->requestType = 'captureMoMoWallet';
-			$this->endpoint_checkout = 'https://payment.momo.vn/gw_payment/transactionProcessor';
+			$this->endpoint_checkout = 'https://momo.vn/gw_payment/transactionProcessor';
 			$this->partnerCode = $this->get_option( 'partnerCode' );
 			$this->accessKey = $this->get_option( 'accessKey' );
 			$this->serectkey = $this->get_option( 'serectkey' );
@@ -131,9 +131,8 @@ function init_wc_payment_momo_gateway(){
 		}
 	
 		
-		public function is_valid_for_use() {
-			return true;
-			return in_array( get_woocommerce_currency(), apply_filters( 'woocommerce_public_bank_supported_currencies', array( 'AUD', 'BRL', 'CAD', 'MXN', 'NZD', 'HKD', 'SGD', 'USD', 'EUR', 'JPY', 'TRY', 'NOK', 'CZK', 'DKK', 'HUF', 'ILS', 'MYR', 'PHP', 'PLN', 'SEK', 'CHF', 'TWD', 'THB', 'GBP', 'RMB', 'RUB' ) ) );
+		public function is_valid_for_use() {			
+			return in_array( get_woocommerce_currency(), apply_filters( 'woocommerce_momo_supported_currencies', array( 'VND' ) ) );
 		}
 		
 		public function admin_options() {
@@ -141,28 +140,18 @@ function init_wc_payment_momo_gateway(){
 				parent::admin_options();
 			} else {
 				?>
-				<div class="inline error"><p><strong><?php _e( 'Gateway Disabled', 'woocommerce' ); ?></strong>: <?php _e( 'Public Bank does not support your store currency.', 'woocommerce' ); ?></p></div>
+				<div class="inline error"><p><strong><?php _e( 'Gateway Disabled', 'woocommerce' ); ?></strong>: <?php _e( 'Momo does not support your store currency.', 'woocommerce' ); ?></p></div>
 				<?php
 			}
 		}
 		
 		//form in checkout page
 		public function payment_fields(){
-			$form = "<p><b>".__('Payment method', 'woocommerce')."</b></p>";
-			$form .= '<select name="wc_pb_merchant">';
-			$form .= '<option value="">'.__('Select a credit card type', 'woocommerce').'</option>';
-			$form .= '<option value="visa">'.__('Visa', 'woocommerce').'</option>';
-			$form .= '<option value="master">'.__('Master Card', 'woocommerce').'</option>';
-			$form .= '</select>';
-			echo $form;
+			return '';
 		}
 		
 		//check form is valid
 		public function validate_fields(){
-			if(empty($_POST['wc_pb_merchant'])){
-				wc_add_notice( __('Please choose a payment method', 'woocommerce'), 'error' );
-				return false;
-			}
 			return true;
 		}
 	
@@ -172,58 +161,64 @@ function init_wc_payment_momo_gateway(){
 		public function init_form_fields() {
 			$this->form_fields = array(
 				'enabled' => array(
-					'title' => __( 'Enable/Disable', 'woocommerce' ),
+					'title' => __( 'Enable/Disable', 'woocommerce-payment-gateway-momo' ),
 					'type' => 'checkbox',
-					'label' => __( 'Enable Malaysia Public Bank Payment', 'woocommerce' ),
+					'label' => __( 'Enable Momo Payment', 'woocommerce-payment-gateway-momo' ),
 					'default' => 'yes'
 				),
 				'title' => array(
-					'title' => __( 'Title', 'woocommerce' ),
+					'title' => __( 'Title', 'woocommerce-payment-gateway-momo' ),
 					'type' => 'text',
-					'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce' ),
-					'default' => __( 'Public Bank', 'woocommerce' ),
+					'description' => __( 'This controls the title which the user sees during checkout.', 'woocommerce-payment-gateway-momo' ),
+					'default' => __( 'Public Bank', 'woocommerce-payment-gateway-momo' ),
 					'desc_tip'      => true,
 				),
 				'description' => array(
-					'title' => __( 'Customer Message', 'woocommerce' ),
+					'title' => __( 'Customer Message', 'woocommerce-payment-gateway-momo' ),
 					'type' => 'textarea',
 					'default' => ''
 				),
 				'thankyou_page' => array(
-						'title' => __('Thank you page'),
+						'title' => __('Thank you page','woocommerce'),
 						'type' => 'select',
 						'options' => $this -> get_pages('Choose...'),
-						'description' => "Chooseing page/url to redirect after checkout to Public Bank Success."
+						'description' =>__("Chooseing page/url to redirect after Payment Success.",'woocommerce-payment-gateway-momo')
 				),
-				'merid_visa' => array(
-					'title' => __( 'Visa MerID', 'woocommerce' ),
+				'partnerCode' => array(
+					'title' => __( 'Partner Code', 'woocommerce-payment-gateway-momo' ),
 					'type' => 'text',
-					'description' => __( 'merID of Visa', 'woocommerce' ),
-					'default' => __( '', 'woocommerce' )
+					'description' => __( 'Partner Code', 'woocommerce-payment-gateway-momo' ),
+					'default' => ''
 				),
-				'merid_master' => array(
-						'title' => __( 'Master card merID', 'woocommerce' ),
+				'accessKey' => array(
+						'title' => __( 'Access Key', 'woocommerce-payment-gateway-momo' ),
 						'type' => 'text',
-						'description' => __( 'merID of Master Card', 'woocommerce' ),
-						'default' => __( '', 'woocommerce' )
+						'description' => __( 'Access Key', 'woocommerce-payment-gateway-momo' ),
+						'default' => ''
 				),
-				'secretCode' => array(
-					'title' => __( 'Secret Code', 'woocommerce' ),
+				'serectkey' => array(
+					'title' => __( 'Secret Key', 'woocommerce-payment-gateway-momo' ),
 					'type' => 'text',
-					'description' => __( 'Secret Code', 'woocommerce' ),
-					'default' => __( '', 'woocommerce' )
+					'description' => __( 'Secret Key', 'woocommerce-payment-gateway-momo' ),
+					'default' => ''
 				),
 				'testmode' => array(
-						'title' => __( 'Testmode', 'woocommerce' ),
+						'title' => __( 'Testmode', 'woocommerce-payment-gateway-momo' ),
 						'type' => 'checkbox',
-						'description' => __( 'Enable test mode', 'woocommerce' ),
-						'default' => __( 'no', 'woocommerce' ),
+						'description' => __( 'Enable test mode', 'woocommerce-payment-gateway-momo' ),
+						'default' => 'no',
 				),
 				'debug' => array(
-						'title' => __( 'Debug', 'woocommerce' ),
+						'title' => __( 'Debug', 'woocommerce-payment-gateway-momo' ),
 						'type' => 'checkbox',
-						'description' => sprintf( __( 'Log Public Bank events, inside %s', 'woocommerce' ), '<code>'.__DIR__.'/log.txt</code>' ),
-						'default' => __( 'no', 'woocommerce' ),
+						'description' => sprintf( __( 'Log Momo events, inside %s', 'woocommerce-payment-gateway-momo' ), '<code>'.__DIR__.'/log.txt</code>' ),
+						'default' => 'no',
+				),
+				'Donate' => array(
+						'title' => __( 'Donate', 'woocommerce-payment-gateway-momo' ),
+						'type' => 'note',
+						'description' => "If this plugin help you please donate me ",
+						'default' => 'no',
 				),
 			);
 		}
@@ -239,9 +234,33 @@ function init_wc_payment_momo_gateway(){
 			 global $woocommerce;
 			$order = new WC_Order( $order_id );			
 			
+			$params = array(
+					'currency_code' => get_woocommerce_currency(),
+					'return' => $this->return_url,
+					'merID' => $merchant_id,
+					'invoiceNo' => sprintf('%020d',$order->get_id()),
+					'amount' => $this->number_format($order->get_total(),$order),
+					'postURL' => str_replace('http://','https://',$this->return_url),
+					'securityMethod' => 'SHA1',
+					'securityKeyReq' => $securityKeyReq
+			);
+			$data =  array('partnerCode' => $this->partnerCode,
+                  'accessKey' => $this->accessKey,
+                  'requestId' => $this->requestId,
+                  'amount' => $this->number_format($order->get_total(),$order),
+                  'orderId' => $order->get_id(),
+                  'orderInfo' => sprintf('%020d',$order->get_id()),
+                  'returnUrl' => $this->return_url,
+                  'notifyUrl' => $this->notify_url,
+                  'extraData' => $extraData,
+			);
+			$data['signature'] = hash_hmac("sha256", http_build_query($data), $this->serectkey);
+			$data['requestType'] = $this->requestType;
+			$result = $this->execPostRequest($this->endpoint, $data);
+			
 			return array(
-	          'result'  => 'success',
-	          'redirect'  => add_query_arg(array('order'=>$order->id,'wc_pb_merchant'=>$_POST['wc_pb_merchant']), add_query_arg('key', $order->order_key, get_permalink(woocommerce_get_page_id('pay' ))))
+	          'result'  =>$result['status']  == '' ? 'success' : 'failed',
+	          'redirect'  => $result['']
 	        );
 		}
 		
@@ -412,7 +431,7 @@ function init_wc_payment_momo_gateway(){
 				$section_slug = strtolower( __CLASS__ );
 			}
 			$setting_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=' . $section_slug );
-			$plugin_links[] = '<a href="' . esc_url( $setting_url ) . '">' . esc_html__( 'Settings', 'woocommerce-payment-momo' ) . '</a>';
+			$plugin_links[] = '<a href="' . esc_url( $setting_url ) . '">' . esc_html__( 'MOMO', 'woocommerce-payment-momo' ) . '</a>';
 			
 			return array_merge( $plugin_links, $links );
 		}
